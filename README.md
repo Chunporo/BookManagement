@@ -1,0 +1,1 @@
+This is a repo to make a website to search for books according to the author. Books data is structured by an AVL tree to make searches quickly and effectively. Frontend, I have used streamlist framwork to build interesting. 
