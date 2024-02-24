@@ -1,6 +1,7 @@
 import pandas as pd
 import pickle
 
+
 class Book:
     def __init__(self, ID, title, author, publication_year):
         self.ID = ID
@@ -114,31 +115,40 @@ class AVLTree:
             )
             # Traverse the right subtree
             self.in_order_traversal(root.right)
-
-
-# Example usage:
-if __name__ == "__main__":
-    avl_tree = AVLTree()
-    df = pd.read_csv("books.csv")
-    # df["publication_date"] = pd.to_datetime(df["publication_date"], format="%m/%d/%Y")
-    for index, row in df.iterrows():
-        bookID = row["bookID"]
-        title = row["title"]
-        authors = row["authors"]
-        publishDate = row["publication_date"]
-
-        book = Book(bookID, title, authors, publishDate[-4:])
-        # print(bookID, " ", title, " ", authors, publishDate[-4:])
-        avl_tree.root = avl_tree.insert(avl_tree.root, book)
-        
     
-    # Search for books by a specific author
-    author_to_search = "William Shakespeare"
-    found_books = []
-    avl_tree.search_books_by_author(avl_tree.root, author_to_search, found_books)
+    # Define a method to serialize the AVL tree
+    def serialize(self, filename):
+        with open(filename, 'wb') as file:
+            pickle.dump(self.root, file)
 
-    # # Display the found books
-    print(f"Books by {author_to_search}:")
-    avl_tree.display_books(found_books)
+    # Define a class method to deserialize the AVL tree
+    @classmethod
+    def deserialize(cls, filename):
+        avl_tree = cls()
+        with open(filename, 'rb') as file:
+            avl_tree.root = pickle.load(file)
+        return avl_tree
 
-    # avl_tree.in_order_traversal(avl_tree.root)
+avl_tree = AVLTree()
+df = pd.read_csv("books.csv")
+for index, row in df.iterrows():
+    bookID = row["bookID"]
+    title = row["title"]
+    authors = row["authors"]
+    publishDate = row["publication_date"]
+
+    book = Book(bookID, title, authors, publishDate[-4:])
+    avl_tree.root = avl_tree.insert(avl_tree.root, book)
+
+avl_tree.serialize("avl_tree.pkl")
+# Search for books by a specific author
+avl_tree = AVLTree.deserialize("avl_tree.pkl")
+author_to_search = "William Shakespeare"
+found_books = []
+avl_tree.search_books_by_author(avl_tree.root, author_to_search, found_books)
+
+# # Display the found books
+print(f"Books by {author_to_search}:")
+avl_tree.display_books(found_books)
+
+# avl_tree.in_order_traversal(avl_tree.root)
