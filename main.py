@@ -1,5 +1,5 @@
 import pandas as pd
-
+import pickle
 
 class Book:
     def __init__(self, ID, title, author, publication_year):
@@ -51,6 +51,9 @@ class AVLTree:
 
     def left_rotate(self, z):
         y = z.right
+        if y is None:
+            return z
+
         T2 = y.left
 
         y.left = z
@@ -63,6 +66,9 @@ class AVLTree:
 
     def right_rotate(self, z):
         y = z.left
+        if y is None:
+            return z
+
         T3 = y.right
 
         y.right = z
@@ -100,11 +106,11 @@ class AVLTree:
 
     def in_order_traversal(self, root):
         if root:
-            # Traverse the left subtree
+            # Traverse the ghleft subtree
             self.in_order_traversal(root.left)
             # Print the current node (book)
             print(
-                f"Book ID: {root.book.ID}, Title: {root.book.title}, Author: {root.book.author}, Publish Year: {root.book.publish_year}"
+                f"Book ID: {root.book.ID}, Title: {root.book.title}, Author: {root.book.author}, Publish Year: {root.book.publication_year}"
             )
             # Traverse the right subtree
             self.in_order_traversal(root.right)
@@ -119,19 +125,20 @@ if __name__ == "__main__":
         bookID = row["bookID"]
         title = row["title"]
         authors = row["authors"]
-        publishDate = row["publication_date"][-4:0]
+        publishDate = row["publication_date"]
 
-        book = Book(bookID, title, authors, publishDate)
-        print(bookID,' ',title,' ',authors,publishDate)
+        book = Book(bookID, title, authors, publishDate[-4:])
+        # print(bookID, " ", title, " ", authors, publishDate[-4:])
         avl_tree.root = avl_tree.insert(avl_tree.root, book)
         
+    
     # Search for books by a specific author
-    author_to_search = ""
+    author_to_search = "William Shakespeare"
     found_books = []
     avl_tree.search_books_by_author(avl_tree.root, author_to_search, found_books)
 
-    # Display the found books
+    # # Display the found books
     print(f"Books by {author_to_search}:")
     avl_tree.display_books(found_books)
-    
-    avl_tree.in_order_traversal()
+
+    # avl_tree.in_order_traversal(avl_tree.root)
