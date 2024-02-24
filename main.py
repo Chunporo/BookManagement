@@ -1,13 +1,19 @@
 import pandas as pd
 import pickle
-
+import streamlit as st
+import json
+from urllib.request import urlopen
+import requests
+from PIL import Image
+from io import BytesIO
 
 class Book:
-    def __init__(self, ID, title, author, publication_year):
+    def __init__(self, ID, title, author, publication_year, isbn):
         self.ID = ID
         self.title = title
         self.author = author
         self.publication_year = publication_year
+        self.isbn = isbn
 
 
 class TreeNode:
@@ -115,19 +121,20 @@ class AVLTree:
             )
             # Traverse the right subtree
             self.in_order_traversal(root.right)
-    
+
     # Define a method to serialize the AVL tree
     def serialize(self, filename):
-        with open(filename, 'wb') as file:
+        with open(filename, "wb") as file:
             pickle.dump(self.root, file)
 
     # Define a class method to deserialize the AVL tree
     @classmethod
     def deserialize(cls, filename):
         avl_tree = cls()
-        with open(filename, 'rb') as file:
+        with open(filename, "rb") as file:
             avl_tree.root = pickle.load(file)
         return avl_tree
+
 
 avl_tree = AVLTree()
 df = pd.read_csv("books.csv")
@@ -136,19 +143,67 @@ for index, row in df.iterrows():
     title = row["title"]
     authors = row["authors"]
     publishDate = row["publication_date"]
+    isbn = row["isbn"]
 
-    book = Book(bookID, title, authors, publishDate[-4:])
+    book = Book(bookID, title, authors, publishDate[-4:], isbn)
     avl_tree.root = avl_tree.insert(avl_tree.root, book)
 
+
+def get_image_from_url(url):
+    try:
+        # Send a GET request to the URL
+        response = requests.get(url)
+        # Check if the request was successful (status code 200)
+        if response.status_code == 200:
+            # Read the content of the response as bytes
+            image_bytes = response.content
+            # Use PIL to open the image from bytes
+            image = Image.open(BytesIO(image_bytes))
+            return image
+        else:
+            st.error(f"Failed to fetch image from {url}. Status code: {response.status_code}")
+            return None
+    except Exception as e:
+        st.error(f"An error occurred: {str(e)}")
+        return None
+    
 avl_tree.serialize("avl_tree.pkl")
 # Search for books by a specific author
 avl_tree = AVLTree.deserialize("avl_tree.pkl")
-author_to_search = "William Shakespeare"
-found_books = []
-avl_tree.search_books_by_author(avl_tree.root, author_to_search, found_books)
+api = "https://www.googleapis.com/books/v1/volumes?q=isbn:"
+st.title("Book Management")
+author_to_search = st.text_input("Enter Author Name:", "")
+if st.button("Search"):
+    # Search for books by the specified author
+    found_books = []
+    avl_tree.search_books_by_author(avl_tree.root, author_to_search, found_books)
 
+    # Display the found books
+    if found_books:
+        st.header(f"Books by {author_to_search}:")
+        for book in found_books:
+            resp = urlopen(api + book.isbn)
+            book_data = json.load(resp)
+            try:
+                thumbnail_url = book_data["items"][0]["volumeInfo"]["imageLinks"]["thumbnail"]
+                thumbnail = get_image_from_url(thumbnail_url)
+                if thumbnail:
+                    st.image(thumbnail, caption='Book Thumbnail')
+            except KeyError:
+                print("Index not present in JSON data")
+            except IndexError:
+                print("Index out of range")
+            st.write(
+                f"Title: {book.title}, Author: {book.author}, Publication Year: {book.publication_year}"
+            )
+        st.write(f"No books found by author {author_to_search}.")
+
+# author_to_search = "William Shakespeare"
+# found_books = []
+# avl_tree.search_books_by_author(avl_tree.root, author_to_search, found_books)
+# author_to_search = st.text_input("Enter Author Name:", "")
 # # Display the found books
-print(f"Books by {author_to_search}:")
-avl_tree.display_books(found_books)
+# print(f"Books by {author_to_search}:")
+# avl_tree.display_books(found_books)
 
 # avl_tree.in_order_traversal(avl_tree.root)
