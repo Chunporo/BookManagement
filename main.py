@@ -1,12 +1,8 @@
+# In windows command line use this to run file: streamlit run .\main.py
+import os
 import pandas as pd
 import pickle
 import streamlit as st
-import json
-from urllib.request import urlopen
-import requests
-from PIL import Image
-from io import BytesIO
-
 class Book:
     def __init__(self, ID, title, author, publication_year, isbn=None):
         self.ID = ID
@@ -105,22 +101,13 @@ class AVLTree:
             found_books.append(root.book)
         self.search_books_by_author(root.right, author, found_books)
 
-    def display_books(self, books):
-        
-        for book in books:
-            print(
-                f"Title: {book.title}, Author: {book.author}, Publication Year: {book.publication_year}"
-            )
-
     def in_order_traversal(self, root):
         # f = open('text.txt','w')
             if root:
                 # Traverse the ghleft subtree
                 self.in_order_traversal(root.left)
                 # Print the current node (book)
-                print(f"Book ID: {root.book.ID}, Title: {root.book.title}, Author: {root.book.author}, Publish Year: {root.book.publication_year}")
-                # input("Press Enter to continue...")
-                # Traverse the right subtree
+                st.write(f"Book ID: {root.book.ID}, Title: {root.book.title}, Author: {root.book.author}, Publish Year: {root.book.publication_year}")
                 self.in_order_traversal(root.right)
 
     # Define a method to serialize the AVL tree
@@ -217,78 +204,71 @@ class AVLTree:
         if not root or root.book.ID == book_id:
             return root
 
-        # If the book ID is smaller than the root's book ID, then search in the left subtree
         if root.book.ID > book_id:
             return self.search_book_by_id(root.left, book_id)
 
-        # If the book ID is greater than the root's book ID, then search in the right subtree
         return self.search_book_by_id(root.right, book_id)   
-         
+
 avl_tree = AVLTree()
-df = pd.read_csv("books.csv")
-for index, row in df.iterrows():
-    bookID = row["bookID"]
-    title = row["title"]
-    authors = row["authors"]
-    publishDate = row["publication_date"]
-    isbn = row["isbn"]
+if not os.path.exists('avl_tree.pkl'):       
+    df = pd.read_csv("books.csv")
+    for index, row in df.iterrows():
+        bookID = row["bookID"]
+        title = row["title"]
+        authors = row["authors"]
+        publishDate = row["publication_date"]
+        isbn = row["isbn"]
 
-    book = Book(bookID, title, authors, publishDate[-4:], isbn)
-    avl_tree.root = avl_tree.insert(avl_tree.root, book)
-
-
-
-def get_image_from_url(url):
-    try:
-        # Send a GET request to the URL
-        response = requests.get(url)
-        # Check if the request was successful (status code 200)
-        if response.status_code == 200:
-            # Read the content of the response as bytes
-            image_bytes = response.content
-            # Use PIL to open the image from bytes
-            image = Image.open(BytesIO(image_bytes))
-            return image
-        else:
-            st.error(f"Failed to fetch image from {url}. Status code: {response.status_code}")
-            return None
-    except Exception as e:
-        st.error(f"An error occurred: {str(e)}")
-        return None
+        book = Book(bookID, title, authors, publishDate[-4:], isbn)
+        avl_tree.root = avl_tree.insert(avl_tree.root, book)
+    avl_tree.serialize("avl_tree.pkl")
+    
 def insert_book():
     st.subheader("Insert Book")
-    # You can create text input fields for Book ID, Title, Author, Publication Year, ISBN
-    book_id = st.text_input("Book ID:")
+    book_idstr = st.text_input("Book ID:")
     title = st.text_input("Title:")
     author = st.text_input("Author:")
     publication_year = st.text_input("Publication Year:")
     isbn = st.text_input("ISBN:")
-    
-    if st.button("Insert"):
-        book = Book(book_id, title, author, publication_year, isbn)
-        avl_tree.root = avl_tree.insert(avl_tree.root, book)
+    try:
+        book_id = int(book_idstr)
+        if st.button("Insert"):
+            book = Book(book_id, title, author, publication_year, isbn)
+            avl_tree.root = avl_tree.insert(avl_tree.root, book)
+        avl_tree.serialize("avl_tree.pkl")
+        st.write('Insert successfully')
+    except ValueError:
+        st.write("Error: Book ID must be an integer")
 
-# Function to delete a book by ID
 def delete_book():
     st.subheader("Delete Book")
-    book_id_to_delete = st.text_input("Enter Book ID to delete:")
-    if st.button("Delete"):
-        avl_tree.delete_book_by_id(book_id_to_delete)
+    try:
+        book_id_to_delete = st.text_input("Enter Book ID to delete:")
+        book_id = int(book_id_to_delete)
+        if st.button("Delete"):
+            avl_tree.delete_book_by_id(book_id)
+            
+        avl_tree.serialize("avl_tree.pkl")
+        st.write('Delete successfully')
+    except ValueError:
+        st.write('Error: Book ID must be an integer')
     
-# Function to find a book by ID
 def find_book():
-    st.subheader("Find Book by ID")
-    book_id_to_find = int(st.text_input("Enter Book ID:"))
-    if st.button("Find"):
-        node = avl_tree.search_book_by_id(avl_tree.root, book_id_to_find)
-        if node:
-            st.write(f"Book found: {node.book.title}, {node.book.author}")
-        else:
-            st.write("Book not found")
-avl_tree.serialize("avl_tree.pkl")
-# Search for books by a specific author
+    try:
+        st.subheader("Find Book by ID")
+        book_id_to_find = st.text_input("Enter Book ID:")
+        book_id = int(book_id_to_find)
+        if st.button("Find"):
+            node = avl_tree.search_book_by_id(avl_tree.root, book_id)
+            if node:
+                st.write(f"Book found: {node.book.title}, {node.book.author}")
+            else:
+                st.write("Book not found")
+    except ValueError:
+        st.write('Error: Book ID musdt be an integer')
+
+# avl_tree.serialize("avl_tree.pkl")
 avl_tree = AVLTree.deserialize("avl_tree.pkl")
-# api = "https://www.googleapis.com/books/v1/volumes?q=isbn:"
 st.title("Book Management")
 insert_book()
 delete_book()
@@ -303,28 +283,11 @@ if st.button("Search"):
     if found_books:
         st.header(f"Books by {author_to_search}:")
         for book in found_books:
-            # resp = urlopen(api + book.isbn)
-            # book_data = json.load(resp)
-            # try:
-            #     thumbnail_url = book_data["items"][0]["volumeInfo"]["imageLinks"]["thumbnail"]
-            #     thumbnail = get_image_from_url(thumbnail_url)
-            #     if thumbnail:
-            #         st.image(thumbnail, caption='Book Thumbnail')
-            # except KeyError:
-            #     print("Index not present in JSON data")
-            # except IndexError:
-            #     print("Index out of range")
             st.write(
                 f"ID: {book.ID} Title: {book.title}, Author: {book.author}, Publication Year: {book.publication_year}"
             )
     else:
         st.write(f"No books found by author {author_to_search}.")
-
-# author_to_search = "William Shakespeare"
-# found_books = []
-# avl_tree.search_books_by_author(avl_tree.root, author_to_search, found_books)
-# author_to_search = st.text_input("Enter Author Name:", "")
-# # Display the found books
-# print(f"Books by {author_to_search}:")
-# avl_tree.display_books(found_books)
-# avl_tree.in_order_traversal(avl_tree.root)
+st.subheader('Print all books order by ID of books')
+if st.button("Show all books"):
+    avl_tree.in_order_traversal(avl_tree.root)
